@@ -1410,9 +1410,21 @@ function reRenderMov(tipo){
   if(el) el.outerHTML=renderMovHTML(day,tipo);
 }
 function updateMov(tipo,idx,field,val){
+  initCuentasState();
   const day=state.days[state.currentDay];
   if(field==="bs"||field==="tasa") day[tipo][idx][field]=rawNum(val)||val;
   else day[tipo][idx][field]=val;
+  // Auto-suggest: if nombre matches a client/proveedor highlight the Fiar button
+  if(field==="nombre"){
+    const nombreUp=val.trim().toUpperCase();
+    const lista=tipo==="ventas"?state.clientes2:state.proveedores2;
+    const existe=lista.find(p=>p.nombre===nombreUp);
+    const fiarBtn=document.getElementById(`fiar-${tipo}-${idx}`);
+    if(fiarBtn){
+      fiarBtn.style.borderColor=existe?"var(--green)":"var(--border)";
+      fiarBtn.title=existe?`Registrar en cuenta de ${existe.nombre}`:"";
+    }
+  }
   if(field==="cod"){
     const acc=state.accounts.find(a=>a.cod===val.toUpperCase());
     const el=document.getElementById(`${tipo}-cta-${idx}`);
@@ -1678,6 +1690,8 @@ function renderMovHTML(day,tipo){
       <td><button class="del-btn" id="chk-${tipo}-${i}" onclick="toggleDone('${tipo}',${i})">${r.done?"✅":"☐"}</button></td>
       <td style="min-width:130px"><input class="ti" value="${r.nombre}" placeholder="Nombre"
         style="min-width:120px"
+        list="personas-list"
+        autocomplete="off"
         oninput="updateMov('${tipo}',${i},'nombre',this.value)"/></td>
       <td><input class="ni" style="width:52px;text-align:center" value="${r.cod}" placeholder="COD"
         oninput="updateMov('${tipo}',${i},'cod',this.value.toUpperCase())" list="cods-list"/></td>
@@ -1693,13 +1707,17 @@ function renderMovHTML(day,tipo){
       </td>
       <td class="td-dim hide-mob" id="${tipo}-cop-${i}">${cop}</td>
       <td style="white-space:nowrap">
-        <button class="fiar-btn ${r.fiado?'fiado':''}" onclick="fiarMov('${tipo}',${i})">${r.fiado?'✓ Fiado':'Fiar'}</button>
+        <button class="fiar-btn ${r.fiado?'fiado':''}" id="fiar-${tipo}-${i}" onclick="fiarMov('${tipo}',${i})">${r.fiado?'✓ Fiado':'Fiar'}</button>
         <button class="del-btn" style="margin-left:3px" onclick="delMovRow('${tipo}',${i})">×</button>
       </td>
     </tr>`;
   });
   return `<div class="card" id="mov-${tipo}">
     <datalist id="cods-list">${state.accounts.map(a=>`<option value="${a.cod}">`).join("")}</datalist>
+    <datalist id="personas-list">
+      ${(state.clientes2||[]).map(c=>`<option value="${c.nombre}">`).join("")}
+      ${(state.proveedores2||[]).map(p=>`<option value="${p.nombre}">`).join("")}
+    </datalist>
     <div class="card-header">
       <span class="card-title ${tclass}">${title}</span>
     </div>
